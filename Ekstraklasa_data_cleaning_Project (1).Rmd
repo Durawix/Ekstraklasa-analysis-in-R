@@ -1,0 +1,267 @@
+# Ekstraklasa logistics aspects rated by attendees
+Author Jakub Durawa
+
+```{r include=FALSE}
+require(dplyr)
+require(tidyverse)
+require(ggplot2)
+require(scales)
+```
+
+
+## **The Research Question**
+
+### Purpose of this research was finding aspects that should be optimized in whole process of organizing football matches in Ekstraklasa. Highest football league in Poland.
+### This dataframe was collected by myself using Microsoft Forms for purpose of my Bachelor degree diploma. Out of 118 people who answered my survey 70 of them were on Ekstraklasa match in 2022/2023 season.
+
+## **Data Preparation**
+
+#### As it is really small dataframe, i couldn't go for machine learning in this case, so i decided to put some extra effort to learn new things. I decided to go through whole data cleaning process in R. (Despite it would be much easier for me to do it using Excel and PowerQuery.) Definietly it took me a lot of time as in the end it took over 250 lines of code to make this dataframe workable. 
+```{r echo=FALSE}
+#I have loaded environment from my base code
+load(file = "Ekstraklasa_clean_environment.RData")
+```
+
+## Let's check what columns we have in this dataframe
+```{r}
+colnames(df_Ekstraklasa_2)
+```
+### I will focus mainly on quality columns as they are most important part of this research, but i decided to show all data i gathered
+
+## *What about roles of attendees?*
+```{r}
+unique(df_Ekstraklasa_2$Role)
+```
+We see at once that
+
+ * **Role** is a factor variables with values:
+    * Football_fan
+    * Sportsman
+    * Media
+
+# **Let's check some plots**
+
+## *What roles have people that attended the match divided by sex?*
+
+```{r echo=FALSE}
+ggplot(data = Quality_Ekstraklasa_with_metric_df, aes(x = Sex)) +
+  geom_bar(aes(fill = Role), colour = "black") +
+  geom_text(
+    aes(label = stat(count), group = Role),
+    stat = "count",
+    position = position_stack(vjust = 0.5),
+    color = "black",
+    size = 5
+    )
+```
+
+### Typically i would filter out ratings given by Sportsmens and Media as this amount of people can't be used as representative, but for the purpose of my diploma i had to leave them to reach minimum limits set by my promoter.
+
+## *How attendees are rating Ekstraklasa SA enterprise?*
+```{r echo=FALSE}
+ ggplot(df_Ekstraklasa_2, aes(x=Rating_Ekstraklasa)) +
+   labs(y= "Amount of votes", x = "Rating of Ekstraklasa SA from 1 to 5") +
+   geom_histogram(binwidth=1, colour="blue", fill="white") +
+   geom_vline(data = Rounded_Rating_Ekstraklasa_means, aes(xintercept=mean), 
+              color="red", linetype="longdash", size=1) +
+   geom_text(data = (df_Ekstraklasa_2 %>% 
+                       group_by(Rating_Ekstraklasa) %>%
+                       summarize(count = n())), 
+             aes(x = Rating_Ekstraklasa, y = count, label = count),
+             vjust = -0.5, color = "black", size = 3) +
+   geom_text(data = Rounded_Rating_Ekstraklasa_means, aes(x = mean, y = 0, label = round(mean, 2)),
+             vjust = -1, hjust = -5, color = "red", size = 5, angle = 90)  # Adding mean value as text
+```
+
+### From what we can see most people arre voting for "3" option with mean equal to 3.43 so i would say Ekstraklasa has rather medium to good opinion along polish football fans.
+
+## *Stacked chart that shows age + Sex of attendees*
+
+```{r echo=FALSE, message=FALSE}
+#stacked chart that shows age + Sex of attendees
+ggplot(data = Quality_Ekstraklasa_with_metric_df, aes(x = Age)) + 
+  geom_bar(aes(fill = Sex), colour="black") +
+  geom_text(data = . %>% group_by(Sex, Age) %>% 
+              summarize(n = n()) %>% group_by(Age) %>%
+              summarize(Sex = Sex, n = n, perc = n / sum(n)),
+            aes(y = n, label = paste(scales::comma(n), 
+                                     
+                                     sep = '\n'), group = Sex), 
+            position = position_stack(vjust = 0.5)) +
+  geom_text(stat = "count", aes(label = scales::comma(after_stat(count))),
+            nudge_y = 0.9, fontface = 2) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.text.y.left = element_blank(),
+        axis.title.y.left = element_blank()) 
+```
+
+### I just wanted to learn how to create stacked chart so there is no much to talk about. Most of respondens in survey where men in 18-25 age gap, during studies with medium education finished. Which is not surprise to me as untill this day most of attendees at football matches are men. 
+  
+  
+## *What vehicle are people using to get to the stadium? Is it dependant based on distance from stadium?*
+```{r echo=FALSE}
+ggplot(data = counts, aes(x = Distance_from_stadium, y = n, fill = Vehicle)) +
+   geom_bar(stat = "identity", position = "dodge", colour = "black") +
+   geom_text(aes(label = n), position = position_dodge(width = 0.9), vjust = -0.5, size = 4, color = "black") +
+   theme_minimal() +
+   theme(
+     axis.text.x = element_text(angle = 90, hjust = 0),
+     axis.text.y.left = element_blank(),
+     axis.title.y.left = element_blank(),
+     plot.margin = margin(20, 30, 20, 20, "pt")
+   ) +
+   coord_cartesian(clip = "off")
+```
+
+### Just to clarify, "Change" means people that changed vehicle during their travel. From what we can see at the plot, despite kilometers difference car is being choosen the most in every case. In my opinion this habit should be changed, in goal to save environment, but its only possible if organizers of matches and city would cooperate together to achieve solution. I would suggest more Park & Ride spots connected with public communication
+
+
+## *Logistics aspects rated by all attendees*
+
+```{r echo=FALSE}
+# Wykres słupkowy poziomy z różnymi kolorami
+ggplot(data_Quality_Ekstraklasa_plot, aes(x = reorder(aspect, -average_score), y = average_score, fill = aspect)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = average_score), vjust = 0.5, hjust = 1.5, color = "black", size = 3, fontface = "bold") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_text(margin = margin(t = 10)), # Add margin to the top of the x-axis label
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(margin = margin(r = 10))) +
+  labs(y = "Average rating", x = "Logistics aspect") +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_x_discrete(expand = c(0.2, 0)) # Zwiększenie szerokości obszar
+
+```
+ 
+### As it can be seen at the chart processes that are rated the highest are:
+
+    * Buying tickets process
+    * Evacuation process
+    * Sense of security
+
+### But i would rather focus on the ones that were rated the lowest:
+    * Parking spaces availability
+    * Info about how to behave in danger situations
+    * Catering services quality
+    
+### Before going into details i have also provided plots divided by sex of attendees to check if some aspects are being seing different.
+
+## *Chart of ratings given by men*
+ 
+```{r echo=FALSE}
+ggplot(data_Quality_Ekstraklasa_Man_plot, aes(x = reorder(aspect, -average_score), y = average_score, fill = aspect)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = average_score), vjust = 0.5, hjust = 1.5, color = "black", size = 3, fontface = "bold") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_text(margin = margin(t = 10)), # Add margin to the top of the x-axis label
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(margin = margin(r = 10))) +
+  labs(y = "Average rating given by Men", x = "Logistics aspect") +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_x_discrete(expand = c(0.2, 0)) # Zwiększenie szerokości obszar
+```
+ 
+### As it can be seen at the chart processes that are rated the highest by men are:
+
+    * Buying tickets process
+    * Sense of security
+    * Evacuation process
+     
+#### So they are the same like in overall rating
+
+### Lowest ones by men are in the same order like in overal rating:
+
+    * Parking spaces availability
+    * Info about how to behave in danger situations
+    * Catering services quality
+### It is not surprise especially like we know survey was dominated by men. That's why their answers are almost the same like in overall rating. Let's check answers given by women.
+
+## *Chart of ratings given by women*
+ 
+```{r echo=FALSE}
+# Wykres słupkowy poziomy z różnymi kolorami
+ggplot(data_Quality_Ekstraklasa_Woman_plot, aes(x = reorder(aspect, -average_score), y = average_score, fill = aspect)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = average_score), vjust = 0.5, hjust = 1.5, color = "black", size = 3, fontface = "bold") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_text(margin = margin(t = 10)), # Add margin to the top of the x-axis label
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(margin = margin(r = 10))) +
+  labs(y = "Average rating given by Women", x = "Logistics aspect") +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_x_discrete(expand = c(0.2, 0)) # Zwiększenie szerokości obszar
+```
+ 
+### As it can be seen at the chart processes that are rated the highest by women are:
+
+    * Stadium staff work quality
+    * Evacuation process
+    * Buying tickets process
+     
+#### The order changed, but alarming thing is that *Sense of security* was rated much lower than along men as its currently at 9th position. There is definetly field to improve for ektraklasa
+
+### Lowest ones by women are almost the same, except *schedule quality*:
+
+    * Game Schedule quality
+    * Info about how to behave in danger situations
+    * Parking spaces availability
+ 
+#### There might be an issue with times when matches are being played, after doing some research i found few matches that were played on dates like Wednesday at 3:00 PM. Which sheds some light on this case.
+
+### I have also gathered information from open question "What should be improved?" I decided to pick most useful ones:
+
+    * More public transport before and after the match
+    * Schedule of games should be provided much earlier
+    * Quality of food
+    * During one of the Lechia's matches i was in a sector where people started fight it was really stressful for me
+    
+#### Opinions from open questions are also the same as the aspects that were rated the lowest, so for sure something should be done in those fields.
+    
+## **Final Conclusions**
+
+### In summary, there are aspects that need to be focused on and efforts should be made to develop and improve them, such as: 
+* parking availability 
+* information regarding safety measures
+* catering services 
+* hyygiene quality 
+
+### However, improving these areas requires cooperation between the organizers and city authorities, clubs, and other entities. Achieving a perfect agreement is challenging, but it is worth the effort because increasing fan satisfaction will also lead to higher attendance at stadiums, resulting in increased ticket sales revenur. For city authorities, an important outcome of this collaboration should be reduction of congestion and emmisions by adjusting public transportation to Ekstraklasa matches.
+
+## **Some thoughts about project**
+
+### I can say it was really fun experience learning new things and battling with code that in the end looks kinda like spaghetti (Especially the data cleaning part)
+
+### If i wanted to apply machine learning for this case i would go for project that could create automated program, which gathers information from attendees at matches asking them what should be improved in their opinion. I would suggest solution that gives them discount for next match after completing survey so it would help gather much more data.
+
+### I learnt new functions and i can already see some things that i can improve in data preparing process
+* Ctrl + shift + c  *(very useful for creating multiline comments :)*
+* Remember to filter out data before starting to prepare it
+* Stack overflow and chatgpt are extremally helpful
+* I found it interesting that in columns i forgot to use "_" (underscore), R just replaced white space with dot
+
+### Functions i need to remember with examples
+* Loading data *(I had some issues with csv file but "sep" helped me :)*
+    * df_Ekstraklasa <- read.csv('~/personal_storage/Project_JAKDU/Ekstraklasa_df_v2.0.csv', sep=";")
+* Updating data frame by removing useless values
+    * df_Ekstraklasa_3 <- df_Ekstraklasa_2 %>% 
+  filter(!str_detect(Attended_match_on_stadium, 'No'))
+* Renaming columns
+    * colnames(df_Ekstraklasa)[colnames(df_Ekstraklasa) == "Status_zawodowy"] ="Professional_status"
+* Replacing values in colums
+    * df_Ekstraklasa[df_Ekstraklasa=="Tak"] <- "Yes" 
+* Removing useless columns
+    * df_Ekstraklasa_2 <- df_Ekstraklasa %>% select(-c(Start.time, Completion.time, Name, Email))
+* Adding new column Opinion about Ekstraklasa *(in the end i didn't make us of it's worth to remember :)*
+    * df_Ekstraklasa_2$Opinion_Ekstraklasa <- with(df_Ekstraklasa_2, ifelse(Rating_Ekstraklasa > 3, 'great',
+                              ifelse(Rating_Ekstraklasa == 3 , 'medium', 'bad')))
+                              
+# Thank you for your time :)
+
+![Cute dog, which says thank you for listening](images/cute_dog_thank_you.jpg)
